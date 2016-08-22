@@ -45,8 +45,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CSVExport.cs" />
-    <Compile Include="ExportBindingListToCSV.cs" />
-    <Compile Include="ExportListToCSV.cs" />
+    <Compile Include="ExportBindingListToCsv.cs" />
+    <Compile Include="ExportListToCsv.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SortListExt.cs" />
   </ItemGroup>

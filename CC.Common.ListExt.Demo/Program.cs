@@ -1,72 +1,70 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace CC.Common.ListExt.Demo
 {
-    class Program
+    public static class Program
     {
         /// <summary>
         /// Class used to test the Export functionality
         /// </summary>
-        public class ExportTest
+        private class ExportTest
         {
-            private EmployeeList list;
-            //private List<string> fields;
+            private EmployeeList _list;
+            private List<string> _fields;
             private Random _gen = new Random();
 
             private DateTime GetRandomDate(DateTime from, DateTime to)
             {
-                TimeSpan range = new TimeSpan(to.Ticks - from.Ticks);
+                var range = new TimeSpan(to.Ticks - from.Ticks);
                 return from + new TimeSpan((long)(range.Ticks * _gen.NextDouble()));
             }
 
             private DateTime RandomDate()
             {
-                //DateTime ret = new DateTime(1950, 1, 1);
-                //int range = ((TimeSpan)(DateTime.Today - ret)).Days;
-                //return ret.AddDays(_gen.Next(range));
                 return GetRandomDate(new DateTime(1930, 1, 1), DateTime.Now);
             }
 
-            public string Test(string sort)
+            private string Test(string sort)
             {
-                string ret = String.Empty;
+                var ret = string.Empty;
 
-                if (null == list)
+                if (null == _list)
                 {
-                    list = new EmployeeList();
-                    list.Add(new Employee("Ken", "Wilcox", "Programmer", new DateTime(1974, 05, 25, 21, 35, 40)));
-                    //System.Threading.Thread.Sleep(1000);
-                    list.Add(new Employee("Jane", "Doe", "Programmer", RandomDate()));
-                    //System.Threading.Thread.Sleep(1000);
-                    list.Add(new Employee("John", "Doe", "Marketting", RandomDate()));
-                    //System.Threading.Thread.Sleep(1000);
-                    list.Add(new Employee("Adelle", "Wilcox", "Programmer", RandomDate()));
+                    _list = new EmployeeList
+                    {
+                        new Employee("Ken", "Wilcox", "Programmer", new DateTime(1974, 05, 25, 21, 35, 40)),
+                        new Employee("Jane", "Doe", "Programmer", RandomDate()),
+                        new Employee("John", "Doe", "Marketting", RandomDate()),
+                        new Employee("Adelle", "Wilcox", "Programmer", RandomDate())
+                    };
                 }
 
-                //if (null == fields)
-                //{
-                //  // What fields we want to export, and in what order
-                //  fields = new List<string>();
-                //  fields.Add("FirstName");
-                //  fields.Add("LastName");
-                //  fields.Add("Title");
-                //}
+                if (null == _fields)
+                {
+                    // What fields we want to export, and in what order
+                    _fields = new List<string> {"Date", "FirstName", "LastName"};
+
+                    // Or we can exclude one
+                    _fields = _list.GetFields();
+                    _fields.Remove("Date");
+
+                    // if I get a null or empty list of fields I'll use all of them
+                    // no point in using this to create an empty file
+                    _fields = new List<string>();
+                }
 
                 try
                 {
-                    list.Sort(sort); // Is this cool or what!!!11!!!
-                                     //list.CSVFieldSep(',');
-                                     //list.CSVFieldPrefixPostfix('\'');
-                                     //list.CSVFieldPrefix('[');
-                                     //list.CSVFieldPostfix(']');
+                    _list.Sort(sort); // Is this cool or what!!!11!!!
 
-                    //list.DisablePrefixPostFix();
-                    list.ExportToCSV(@"C:\Temp\data.csv");
-                    //ret = data;
+                    //_list.CsvFieldSep('\t');
+                    //_list.CsvFieldPrefixPostfix('\'');
+                    //_list.CsvFieldPrefix('[');
+                    //_list.CsvFieldPostfix(']');
+
+                    //_list.DisablePrefixPostFix();
+                    _list.ExportToCsv(_fields, @"C:\Temp\data.csv");
                 }
                 catch (Exception ex)
                 {
@@ -78,32 +76,33 @@ namespace CC.Common.ListExt.Demo
 
             public static void Main()
             {
-                ExportTest t = new ExportTest();
+                var t = new ExportTest();
                 Console.WriteLine(t.Test("LastName desc, FirstName asc"));
             }
         }
 
         public class Employee
         {
-            [CSVExport("First Name")]
+            [CsvExport("First Name")]
             public string FirstName { get; set; }
-            [CSVExport("Last Name")]
+            [CsvExport("Last Name")]
             public string LastName { get; set; }
+            [CsvExport("Position")]
             public string Title { get; set; }
-            [CSVExport("Hire Date")]
+            [CsvExport("Hire Date")]
             public DateTime Date { get; set; }
 
             public Employee(string firstName, string lastName, string title, DateTime date)
             {
-                this.FirstName = firstName;
-                this.LastName = lastName;
-                this.Title = title;
-                this.Date = date;
+                FirstName = firstName;
+                LastName = lastName;
+                Title = title;
+                Date = date;
             }
 
             public override string ToString()
             {
-                return String.Format("Title: {0} - Name: {1}, {2} Date: {3}", Title, LastName, FirstName, Date);
+                return string.Format("Title: {0} - Name: {1}, {2} Date: {3}", Title, LastName, FirstName, Date);
             }
         }
 

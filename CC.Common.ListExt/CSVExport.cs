@@ -1,22 +1,19 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 namespace CC.Common.ListExt
 {
-  [AttributeUsage(AttributeTargets.Property)]
-  public class CSVExport : System.Attribute
-  {
-    private string _headerName;
-    public CSVExport(string headerName)
+    [AttributeUsage(AttributeTargets.Property)]
+    public class CsvExport : Attribute
     {
-      _headerName = headerName;
-    }
+        private readonly string _headerName;
+        public CsvExport(string headerName)
+        {
+            _headerName = headerName;
+        }
 
-    public String HeaderName
-    {
-      get { return _headerName; }
+        public string HeaderName
+        {
+            get { return _headerName; }
+        }
     }
-  }
 }

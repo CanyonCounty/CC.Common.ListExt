@@ -1,177 +1,188 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Reflection;
 using System.IO;
 
 namespace CC.Common.ListExt
 {
-  public static class ExportListToCSV
-  {
-    private static string _error = String.Empty;
-    private static char _fieldSep = ',';
-    private static char _fieldPrefix = '"';
-    private static char _fieldPostfix = '"';
-    private static bool _disabledPrePost = false;
-    private static string _preData = String.Empty;
-    private static string _postData = String.Empty;
-
-    private static string PrePostFix(string item)
+    public static class ExportListToCsv
     {
-      if (!_disabledPrePost)
-      {
-        return _fieldPrefix.ToString() + item + _fieldPostfix.ToString();
-      }
-      else
-      {
-        return item;
-      }
-    }
+        private static string _error = string.Empty;
+        private static char _fieldSep = ',';
+        private static char _fieldPrefix = '"';
+        private static char _fieldPostfix = '"';
+        private static bool _disabledPrePost;
+        private static string _preData = string.Empty;
+        private static string _postData = string.Empty;
 
-    // Takes a list of Objects and returns a csv
-    public static string ExportToCSV<T>(this List<T> list, List<string> fields)
-    {
-      string ret = "";
-      Dictionary<string, PropertyInfo> dict = new Dictionary<string, PropertyInfo>();
-      Type type = typeof(T);
-      string header = String.Empty;
-      string head = String.Empty;
-
-      foreach (string field in fields)
-      {
-        PropertyInfo pi = type.GetProperty(field.Trim());
-        if (pi != null)
+        private static string PrePostFix(string item)
         {
-          dict.Add(field, pi);
-          head = PrePostFix(field) + _fieldSep.ToString();
+            if (!_disabledPrePost)
+            {
+                return _fieldPrefix.ToString() + item + _fieldPostfix.ToString();
+            }
+            else
+            {
+                return item;
+            }
+        }
 
-          object[] attributes;
-          attributes = dict[field].GetCustomAttributes(typeof(CSVExport), false);
-          foreach (Object attribute in attributes)
-          {
+        // Takes a list of Objects and returns a csv
+        public static string ExportToCsv<T>(this List<T> list, List<string> fields)
+        {
+            var ret = "";
+            var dict = new Dictionary<string, PropertyInfo>();
+            var type = typeof(T);
+            var header = string.Empty;
+
+            if (fields == null || fields.Count == 0)
+            {
+                fields = GetFields(list);
+            }
+
+            foreach (var field in fields)
+            {
+                string head;
+                var pi = type.GetProperty(field.Trim());
+                if (pi != null)
+                {
+                    dict.Add(field, pi);
+                    head = PrePostFix(field) + _fieldSep.ToString();
+
+                    var attributes = dict[field].GetCustomAttributes(typeof (CsvExport), false);
+                    foreach (var attribute in attributes)
+                    {
+                        try
+                        {
+                            var csv = (CsvExport) attribute;
+                            head = PrePostFix(csv.HeaderName) + _fieldSep.ToString();
+                        }
+                        catch
+                        {
+                            // ignored
+                        }
+                    }
+                }
+                else
+                    throw new Exception(string.Format("{0} is not a valid property of type: \"{1}\"", field, type.Name));
+
+                header += head;
+            }
+
+            ret += header.TrimEnd(_fieldSep);
+            ret += Environment.NewLine;
+
+            foreach (var item in list)
+            {
+                var row = string.Empty;
+                //ret += item.ToString() + Environment.NewLine;
+                foreach (var field in fields)
+                {
+                    //string msg = prop.GetValue(this, null).ToString();
+                    //PropertyInfo pi = dict[field];
+                    //object obj = pi.GetValue(item, null);
+
+                    // If the column is null, then enter a blank space
+                    var obj = dict[field].GetValue(item, null);
+                    if (obj != null)
+                        row += PrePostFix(obj.ToString()) + _fieldSep.ToString();
+                    else
+                        row += _fieldSep;
+                }
+
+                ret += row.TrimEnd(_fieldSep);
+                ret += Environment.NewLine;
+            }
+            return ret;
+        }
+
+        public static bool ExportToCsv<T>(this List<T> list, List<string> fields, string fileName)
+        {
+            var ret = true;
+            var data = ExportToCsv(list, fields);
             try
             {
-              CSVExport csv = (CSVExport)attribute;
-              head = PrePostFix(csv.HeaderName) + _fieldSep.ToString();
+                using (var outfile = new StreamWriter(fileName))
+                {
+                    if (_preData != string.Empty)
+                        outfile.Write(_preData);
+
+                    outfile.Write(data);
+
+                    if (_postData != string.Empty)
+                        outfile.Write(_postData);
+                    outfile.Flush();
+                    outfile.Close();
+                }
             }
-            catch { }
-          }
+            catch (Exception e)
+            {
+                ret = false;
+                _error = e.Message;
+            }
+            return ret;
         }
-        else
-          throw new Exception(String.Format("{0} is not a valid property of type: \"{1}\"", field, type.Name));
 
-        header += head;
-      }
-
-      ret += header.TrimEnd(_fieldSep);
-      ret += Environment.NewLine;
-
-      foreach (T item in list)
-      {
-        string row = String.Empty;
-        //ret += item.ToString() + Environment.NewLine;
-        foreach (string field in fields)
+        public static bool ExportToCsv<T>(this List<T> list, string fileName)
         {
-          //string msg = prop.GetValue(this, null).ToString();
-          //PropertyInfo pi = dict[field];
-          //object obj = pi.GetValue(item, null);
+            // If you just give me a filename, I'll figure out the fields...
+            var fields = GetFields(list);
 
-          // If the column is null, then enter a blank space
-          object obj = dict[field].GetValue(item, null);
-          if (obj != null)
-            row += PrePostFix(obj.ToString()) + _fieldSep.ToString();
-          else
-            row += _fieldSep;
+            return ExportToCsv(list, fields, fileName);
         }
 
-        ret += row.TrimEnd(_fieldSep);
-        ret += Environment.NewLine;
-      }
-      return ret;
-    }
-
-    public static bool ExportToCSV<T>(this List<T> list, List<string> fields, string fileName)
-    {
-      bool ret = true;
-      string data = ExportToCSV(list, fields);
-      try
-      {
-        using (StreamWriter outfile = new StreamWriter(fileName))
+        public static List<string> GetFields<T>(this List<T> list)
         {
-          if (_preData != String.Empty)
-            outfile.Write(_preData);
-
-          outfile.Write(data);
-
-          if (_postData != String.Empty)
-            outfile.Write(_postData);
-          outfile.Flush();
-          outfile.Close();
+            var fields = new List<string>();
+            var type = typeof(T);
+            var props = type.GetProperties();
+            foreach (var info in props)
+            {
+                fields.Add(info.Name);
+            }
+            return fields;
         }
-      }
-      catch (Exception e)
-      {
-        ret = false;
-        _error = e.Message;
-      }
-      return ret;
-    }
 
-    public static bool ExportToCSV<T>(this List<T> list, string fileName)
-    {
-      // If you just give me a filename, I'll figure out the fields...
-      List<string> fields = new List<string>();
-      Type type = typeof(T);
-      PropertyInfo[] props = type.GetProperties();
-      foreach (PropertyInfo info in props)
-      {
-        fields.Add(info.Name);
-      }
+        public static string ExportError<T>(this List<T> list)
+        {
+            return _error;
+        }
 
-      return ExportToCSV(list, fields, fileName);
-    }
+        public static void CsvFieldSep<T>(this List<T> list, char fieldSep)
+        {
+            _fieldSep = fieldSep;
+        }
 
-    public static string ExportError<T>(this List<T> list)
-    {
-      return _error;
-    }
+        public static void CsvFieldPrefix<T>(this List<T> list, char fieldPrefix)
+        {
+            _fieldPrefix = fieldPrefix;
+        }
 
-    public static void CSVFieldSep<T>(this List<T> list, char fieldSep)
-    {
-      _fieldSep = fieldSep;
-    }
+        public static void CsvFieldPostfix<T>(this List<T> list, char fieldPostfix)
+        {
+            _fieldPostfix = fieldPostfix;
+        }
 
-    public static void CSVFieldPrefix<T>(this List<T> list, char fieldPrefix)
-    {
-      _fieldPrefix = fieldPrefix;
-    }
-    
-    public static void CSVFieldPostfix<T>(this List<T> list, char fieldPostfix)
-    {
-      _fieldPostfix = fieldPostfix;
-    }
-    
-    public static void CSVFieldPrefixPostfix<T>(this List<T> list, char fieldPrefixPostfix)
-    {
-      _fieldPostfix = fieldPrefixPostfix;
-      _fieldPrefix = fieldPrefixPostfix;
-    }
+        public static void CsvFieldPrefixPostfix<T>(this List<T> list, char fieldPrefixPostfix)
+        {
+            _fieldPostfix = fieldPrefixPostfix;
+            _fieldPrefix = fieldPrefixPostfix;
+        }
 
-    public static void DisablePrefixPostFix<T>(this List<T> list)
-    {
-      _disabledPrePost = true;
-    }
+        public static void DisablePrefixPostFix<T>(this List<T> list)
+        {
+            _disabledPrePost = true;
+        }
 
-    public static void CSVPreData<T>(this List<T> list, string data)
-    {
-      _preData = data;
-    }
+        public static void CsvPreData<T>(this List<T> list, string data)
+        {
+            _preData = data;
+        }
 
-    public static void CSVPostData<T>(this List<T> list, string data)
-    {
-      _postData = data;
-    }
+        public static void CsvPostData<T>(this List<T> list, string data)
+        {
+            _postData = data;
+        }
 
-  }
+    }
 }
