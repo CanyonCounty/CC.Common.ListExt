@@ -40,6 +40,9 @@ namespace CC.Common.ListExt.Demo
                     };
                 }
 
+                // this is to get resharper to not be so "helpful"
+                var emp = new Employee("nothing", "nothing", "nothing", DateTime.Today);
+
                 if (null == _fields)
                 {
                     // What fields we want to export, and in what order
@@ -52,6 +55,14 @@ namespace CC.Common.ListExt.Demo
                     // if I get a null or empty list of fields I'll use all of them
                     // no point in using this to create an empty file
                     _fields = new List<string>();
+
+                    // if it's not in this if resharper wants to use the object initializer
+                    // then it says the fields can be private, but private fields fail to export
+                    emp.FirstName = "NotNull";
+                    emp.LastName = "NotNull";
+                    emp.Title = "NotNull";
+                    emp.Date = DateTime.Today.AddDays(-1);
+                    _list.Add(emp);
                 }
 
                 try
