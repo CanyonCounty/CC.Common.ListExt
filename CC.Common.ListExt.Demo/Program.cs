@@ -54,7 +54,7 @@ namespace CC.Common.ListExt.Demo
 
                     // if I get a null or empty list of fields I'll use all of them
                     // no point in using this to create an empty file
-                    _fields = new List<string>();
+                    //_fields = new List<string>();
 
                     // if it's not in this if resharper wants to use the object initializer
                     // then it says the fields can be private, but private fields fail to export
@@ -75,7 +75,14 @@ namespace CC.Common.ListExt.Demo
                     //_list.CsvFieldPostfix(']');
 
                     //_list.DisablePrefixPostFix();
+
+                    // These are only written when you export to file
+                    _list.CsvPreData("This is some cool report header - it's just text, add what you want\n");
+                    _list.CsvPostData("This is some cool report footer - it just does whatever you want too!\n\nSee more here\n");
+
                     _list.ExportToCsv(_fields, @"C:\Temp\data.csv");
+                    var data = _list.ExportToCsv(_fields);
+                    Console.Write(data);
                 }
                 catch (Exception ex)
                 {
